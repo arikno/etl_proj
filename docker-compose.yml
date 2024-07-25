@@ -1,6 +1,7 @@
-version: '3.1'
+version: '3.7'
 
 services:
+  # MySQL Service
   mysql:
     image: mysql:latest
     container_name: mysql
@@ -12,16 +13,45 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  # PostgreSQL Service
   postgres:
     image: postgres:latest
     container_name: postgres
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: target_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  # Airflow Services
+  webserver:
+    image: apache/airflow:2.6.0
+    restart: always
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:password@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    depends_on:
+      - postgres
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+
+  scheduler:
+    image: apache/airflow:2.6.0
+    restart: always
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:password@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    depends_on:
+      - postgres
+    volumes:
+      - ./dags:/opt/airflow/dags
 
 volumes:
   mysql_data:
